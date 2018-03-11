@@ -6,9 +6,14 @@
 #include "line.h"
 #include "polygon.h"
 
+#define RED_STATUS 2
+#define NORMAL_STATUS 1
+#define GREEN_STATUS 4
+#define BLUE_STATUS 3
+
 framebuffer f;
 int dimension_x = 1366;
-int dimension_y = 762;
+int dimension_y = 768;
 int background_red = 255;
 int background_green = 255;
 int background_blue = 255;
@@ -17,7 +22,8 @@ int crosshair_green = 0;
 int crosshair_blue = 0;
 int crosshair_middle = 5;
 int crosshair_radius = 20;
-
+pthread_t threads[2];
+int status = NORMAL_STATUS;
 void colorBackground() {
     for (int i = 0; i < dimension_x; i++) {
         for (int j = 0; j < dimension_y; j++) {
@@ -94,18 +100,42 @@ int isCrosshairMoveValid(point c, int dx, int dy) {
         c.y-dy-crosshair_radius > 0 && c.y-dy+crosshair_radius < dimension_y;
 }
 
-int main(int argc, char** argv) {
-    // Input dimension
-    if (argc != 3) {
-        fprintf(stderr, "Please input dimension\n");
-        fprintf(stderr, "Example: %s 1366 768\n", argv[0]);
-        return -1;
+
+void *changeColor(void *arg) {
+    system ("/bin/stty raw");
+    char c;
+    while (c = getchar()) {
+        if (c == 'r') { //for color red
+            crosshair_red = 255;
+            crosshair_green = 0;
+            crosshair_blue = 0;
+            status = RED_STATUS;
+        }
+        else if (c == 'n') { //for back to normal black
+            crosshair_red = 0;
+            crosshair_green = 0;
+            crosshair_blue = 0;
+            status = NORMAL_STATUS;    
+        } else if (c== 'b') { //for blue
+            crosshair_red = 0;
+            crosshair_green = 0;
+            crosshair_blue = 255;
+            status = BLUE_STATUS; 
+        } else if (c== 'g') { //for green
+            crosshair_red = 0;
+            crosshair_green = 255;
+            crosshair_blue = 0;
+            status = GREEN_STATUS; 
+        }
+        else {
+            status = NORMAL_STATUS;
+            break;
+        }
     }
+    system ("/bin/stty cooked");
+}
 
-    dimension_x = atoi(argv[1]);
-    dimension_y = atoi(argv[2])-6;
-
-    // Initialize framebuffer and background
+void *paint(void *arg) {
     f = init();
     colorBackground();
 
@@ -129,7 +159,7 @@ int main(int argc, char** argv) {
     fd = open(pDevice, O_RDWR);
     if (fd == -1) {
         printf("ERROR Opening %s\n", pDevice);
-        return -1;
+        // return;
     }
 
     // Read mouse
@@ -155,9 +185,98 @@ int main(int argc, char** argv) {
             }
 
             if (left > 0) {
+                if(status == RED_STATUS) {
+                    crosshair.c1 = 0;
+                    crosshair.c2 = 0;
+                    crosshair.c3 = 255;
+                } else if(status == NORMAL_STATUS) {
+                    crosshair.c1 = 0;
+                    crosshair.c2 = 0;
+                    crosshair.c3 = 0;
+                } else if(status == GREEN_STATUS) {
+                    crosshair.c1 = 0;
+                    crosshair.c2 = 255;
+                    crosshair.c3 = 0;
+                } else if(status == BLUE_STATUS) {
+                    crosshair.c1 = 255;
+                    crosshair.c2 = 0;
+                    crosshair.c3 = 0;
+                }
                 draw_point(crosshair, f);
             }
         }
     }
+}
+
+int main(int argc, char** argv) {
+    // Input dimension
+    if (argc != 6) {
+        fprintf(stderr, "Please input dimension\n");
+        fprintf(stderr, "Example: %s 1366 768\n", argv[0]);
+        return -1;
+    }
+
+    dimension_x = atoi(argv[1]);
+    dimension_y = atoi(argv[2])-6;
+    pthread_create(threads, NULL, paint, NULL);
+    pthread_create(threads+1, NULL, changeColor, NULL);
+    pthread_exit(NULL);
+    // crosshair_red = atoi(argv[3]);
+    // crosshair_green = atoi(argv[4]);
+    // crosshair_blue = atoi(argv[5]);
+    // Initialize framebuffer and background
+    // f = init();
+    // colorBackground();
+
+    // // Mouse variables
+    // int fd, bytes;
+    // unsigned char data[3];
+
+    // const char *pDevice = "/dev/input/mice";
+
+    // int left, middle, right;
+    // signed char dx, dy;
+
+    // point crosshair_temp[((crosshair_radius-crosshair_middle)+1)*4];
+
+    // // Create crosshair
+    // point crosshair = create_point(dimension_x/2, (dimension_y)/2, crosshair_blue, crosshair_green, crosshair_red);
+    // readTempCrosshair(crosshair_temp, crosshair);
+    // drawCrosshair(crosshair, crosshair_radius);
+
+    // // Open mouse
+    // fd = open(pDevice, O_RDWR);
+    // if (fd == -1) {
+    //     printf("ERROR Opening %s\n", pDevice);
+    //     return -1;
+    // }
+
+    // // Read mouse
+    // while (1) {
+    //     bytes = read(fd, data, sizeof(data));
+
+    //     if (bytes > 0) {
+    //         left = data[0] & 0x1;
+    //         right = data[0] & 0x2;
+    //         middle = data[0] & 0x4;
+
+    //         dx = data[1];
+    //         dy = data[2];
+
+    //         if (isCrosshairMoveValid(crosshair, dx, dy)) {
+    //             drawTempCrosshair(crosshair_temp);
+
+    //             crosshair.x += dx;
+    //             crosshair.y -= dy;
+
+    //             readTempCrosshair(crosshair_temp, crosshair);
+    //             drawCrosshair(crosshair, crosshair_radius);
+    //         }
+
+    //         if (left > 0) {
+    //             draw_point(crosshair, f);
+    //         }
+    //     }
+    // }
     return 0; 
 }
