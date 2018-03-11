@@ -15,6 +15,7 @@ int background_blue = 255;
 int crosshair_red = 0;
 int crosshair_green = 0;
 int crosshair_blue = 0;
+int crosshair_middle = 5;
 int crosshair_radius = 20;
 
 void colorBackground() {
@@ -25,15 +26,45 @@ void colorBackground() {
     }
 }
 
-void eraseCrosshair(point p, int r) {
-    line up = create_line(create_point(p.x, p.y-5, background_blue, background_green, background_red),
-        create_point(p.x, p.y-r, background_blue, background_green, background_red));
-    line down = create_line(create_point(p.x, p.y+5, background_blue, background_green, background_red),
-        create_point(p.x, p.y+r, background_blue, background_green, background_red));
-    line left = create_line(create_point(p.x-5, p.y, background_blue, background_green, background_red),
-        create_point(p.x-r, p.y, background_blue, background_green, background_red));
-    line right = create_line(create_point(p.x+5, p.y, background_blue, background_green, background_red),
-        create_point(p.x+r, p.y, background_blue, background_green, background_red));
+int getRed(int x, int y) {
+    int loc = (x+f.vinfo.xoffset) * (f.vinfo.bits_per_pixel/8) + 
+            (y+f.vinfo.yoffset) * f.finfo.line_length;
+    int c3 = *(f.fbp + loc + 2);
+    if (c3 < 0) {
+        c3 += 256;
+    }
+    return c3;
+}
+
+int getGreen(int x, int y) {
+    int loc = (x+f.vinfo.xoffset) * (f.vinfo.bits_per_pixel/8) + 
+            (y+f.vinfo.yoffset) * f.finfo.line_length;
+    int c2 = *(f.fbp + loc + 1);
+    if (c2 < 0) {
+        c2 += 256;
+    }
+    return c2;
+}
+
+int getBlue(int x, int y) {
+    int loc = (x+f.vinfo.xoffset) * (f.vinfo.bits_per_pixel/8) + 
+            (y+f.vinfo.yoffset) * f.finfo.line_length;
+    int c1 = *(f.fbp + loc);
+    if (c1 < 0) {
+        c1 += 256;
+    }
+    return c1;
+}
+
+void drawCrosshair(point p, int r) {
+    line up = create_line(create_point(p.x, p.y-crosshair_middle, crosshair_blue, crosshair_green, crosshair_red),
+        create_point(p.x, p.y-r, crosshair_blue, crosshair_green, crosshair_red));
+    line down = create_line(create_point(p.x, p.y+crosshair_middle, crosshair_blue, crosshair_green, crosshair_red),
+        create_point(p.x, p.y+r, crosshair_blue, crosshair_green, crosshair_red));
+    line left = create_line(create_point(p.x-crosshair_middle, p.y, crosshair_blue, crosshair_green, crosshair_red),
+        create_point(p.x-r, p.y, crosshair_blue, crosshair_green, crosshair_red));
+    line right = create_line(create_point(p.x+crosshair_middle, p.y, crosshair_blue, crosshair_green, crosshair_red),
+        create_point(p.x+r, p.y, crosshair_blue, crosshair_green, crosshair_red));
 
     draw_line(up, f);
     draw_line(down, f);
@@ -41,20 +72,21 @@ void eraseCrosshair(point p, int r) {
     draw_line(right, f);
 }
 
-void drawCrosshair(point p, int r) {
-    line up = create_line(create_point(p.x, p.y-5, crosshair_blue, crosshair_green, crosshair_red),
-        create_point(p.x, p.y-r, crosshair_blue, crosshair_green, crosshair_red));
-    line down = create_line(create_point(p.x, p.y+5, crosshair_blue, crosshair_green, crosshair_red),
-        create_point(p.x, p.y+r, crosshair_blue, crosshair_green, crosshair_red));
-    line left = create_line(create_point(p.x-5, p.y, crosshair_blue, crosshair_green, crosshair_red),
-        create_point(p.x-r, p.y, crosshair_blue, crosshair_green, crosshair_red));
-    line right = create_line(create_point(p.x+5, p.y, crosshair_blue, crosshair_green, crosshair_red),
-        create_point(p.x+r, p.y, crosshair_blue, crosshair_green, crosshair_red));
+void readTempCrosshair(point parr[], point p) {
+    int j = 0;
+    for (int i = crosshair_middle; i <= crosshair_radius; i++) {
+        parr[j] = create_point(p.x, p.y-i, getBlue(p.x, p.y-i), getGreen(p.x, p.y-i), getRed(p.x, p.y-i));
+        parr[j+1] = create_point(p.x, p.y+i, getBlue(p.x, p.y+i), getGreen(p.x, p.y+i), getRed(p.x, p.y+i));
+        parr[j+2] = create_point(p.x-i, p.y, getBlue(p.x-i, p.y), getGreen(p.x-i, p.y), getRed(p.x-i, p.y));
+        parr[j+3] = create_point(p.x+i, p.y, getBlue(p.x+i, p.y), getGreen(p.x+i, p.y), getRed(p.x+i, p.y));
+        j += 4;
+    }
+}
 
-    draw_line(up, f);
-    draw_line(down, f);
-    draw_line(left, f);
-    draw_line(right, f);
+void drawTempCrosshair(point parr[]) {
+    for (int i = 0; i < ((crosshair_radius-crosshair_middle)+1)*4; i++) {
+        draw_point(parr[i], f);
+    }
 }
 
 int isCrosshairMoveValid(point c, int dx, int dy) {
@@ -86,8 +118,11 @@ int main(int argc, char** argv) {
     int left, middle, right;
     signed char dx, dy;
 
+    point crosshair_temp[((crosshair_radius-crosshair_middle)+1)*4];
+
     // Create crosshair
     point crosshair = create_point(dimension_x/2, (dimension_y)/2, crosshair_blue, crosshair_green, crosshair_red);
+    readTempCrosshair(crosshair_temp, crosshair);
     drawCrosshair(crosshair, crosshair_radius);
 
     // Open mouse
@@ -110,11 +145,12 @@ int main(int argc, char** argv) {
             dy = data[2];
 
             if (isCrosshairMoveValid(crosshair, dx, dy)) {
-                eraseCrosshair(crosshair, crosshair_radius);
+                drawTempCrosshair(crosshair_temp);
 
                 crosshair.x += dx;
                 crosshair.y -= dy;
 
+                readTempCrosshair(crosshair_temp, crosshair);
                 drawCrosshair(crosshair, crosshair_radius);
             }
 
