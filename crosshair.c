@@ -210,7 +210,7 @@ void *paint(void *arg) {
 
 int main(int argc, char** argv) {
     // Input dimension
-    if (argc != 6) {
+    if (argc != 3) {
         fprintf(stderr, "Please input dimension\n");
         fprintf(stderr, "Example: %s 1366 768\n", argv[0]);
         return -1;
@@ -221,62 +221,5 @@ int main(int argc, char** argv) {
     pthread_create(threads, NULL, paint, NULL);
     pthread_create(threads+1, NULL, changeColor, NULL);
     pthread_exit(NULL);
-    // crosshair_red = atoi(argv[3]);
-    // crosshair_green = atoi(argv[4]);
-    // crosshair_blue = atoi(argv[5]);
-    // Initialize framebuffer and background
-    // f = init();
-    // colorBackground();
-
-    // // Mouse variables
-    // int fd, bytes;
-    // unsigned char data[3];
-
-    // const char *pDevice = "/dev/input/mice";
-
-    // int left, middle, right;
-    // signed char dx, dy;
-
-    // point crosshair_temp[((crosshair_radius-crosshair_middle)+1)*4];
-
-    // // Create crosshair
-    // point crosshair = create_point(dimension_x/2, (dimension_y)/2, crosshair_blue, crosshair_green, crosshair_red);
-    // readTempCrosshair(crosshair_temp, crosshair);
-    // drawCrosshair(crosshair, crosshair_radius);
-
-    // // Open mouse
-    // fd = open(pDevice, O_RDWR);
-    // if (fd == -1) {
-    //     printf("ERROR Opening %s\n", pDevice);
-    //     return -1;
-    // }
-
-    // // Read mouse
-    // while (1) {
-    //     bytes = read(fd, data, sizeof(data));
-
-    //     if (bytes > 0) {
-    //         left = data[0] & 0x1;
-    //         right = data[0] & 0x2;
-    //         middle = data[0] & 0x4;
-
-    //         dx = data[1];
-    //         dy = data[2];
-
-    //         if (isCrosshairMoveValid(crosshair, dx, dy)) {
-    //             drawTempCrosshair(crosshair_temp);
-
-    //             crosshair.x += dx;
-    //             crosshair.y -= dy;
-
-    //             readTempCrosshair(crosshair_temp, crosshair);
-    //             drawCrosshair(crosshair, crosshair_radius);
-    //         }
-
-    //         if (left > 0) {
-    //             draw_point(crosshair, f);
-    //         }
-    //     }
-    // }
     return 0; 
 }
