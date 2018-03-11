@@ -19,8 +19,11 @@ typedef struct framebuffer{
 	struct fb_fix_screeninfo finfo;
 	long int screensize;
 	char *fbp;
+	char *real_screen;
 }framebuffer;
 
 framebuffer init();
+
+void drawToScreen(framebuffer *f);
 
 #endif

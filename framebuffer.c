@@ -9,6 +9,8 @@
 #include <limits.h>
 #include <time.h>
 #include <pthread.h>
+#include <string.h>
+#include <stdint.h>
 #include "framebuffer.h"
 
 framebuffer init(){
@@ -35,12 +37,20 @@ framebuffer init(){
 
     printf("%dx%d, %dbpp\n", f.vinfo.xres, f.vinfo.yres, f.vinfo.bits_per_pixel);
 
+    f.vinfo.grayscale = 0;
+    f.vinfo.bits_per_pixel = 32;
+    f.vinfo.xoffset = 0;
+    f.vinfo.yoffset = 0;
+
     // Figure out the size of the screen in bytes
-    f.screensize = f.vinfo.xres * f.vinfo.yres * f.vinfo.bits_per_pixel / 8;
+    f.screensize = f.vinfo.yres_virtual * f.finfo.line_length;
 
     // Map the device to memory
-    f.fbp = (char *)mmap(0, f.screensize, PROT_READ | PROT_WRITE, MAP_SHARED,
+    f.real_screen = (char *)mmap(0, f.screensize, PROT_READ | PROT_WRITE, MAP_SHARED,
                         f.fbfd, 0);
+
+    f.fbp = (char *) malloc (f.screensize * sizeof(char));
+
     if ((long)f.fbp == -1) {
         perror("Error: failed to map framebuffer device to memory");
         exit(4);
@@ -49,4 +59,8 @@ framebuffer init(){
     printf("The framebuffer device was mapped to memory successfully.\n");
 
     return f;
+}
+
+void drawToScreen(framebuffer *f){
+    memcpy(f->real_screen, f->fbp, f->screensize);
 }

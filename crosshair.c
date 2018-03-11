@@ -126,6 +126,9 @@ void *changeColor(void *arg) {
             crosshair_green = 255;
             crosshair_blue = 0;
             status = GREEN_STATUS; 
+        } else if (c== 1){
+            colorBackground();
+            drawToScreen(&f);
         }
         else {
             status = NORMAL_STATUS;
@@ -139,6 +142,8 @@ void *paint(void *arg) {
     f = init();
     colorBackground();
 
+    drawToScreen(&f);
+
     // Mouse variables
     int fd, bytes;
     unsigned char data[3];
@@ -146,6 +151,7 @@ void *paint(void *arg) {
     const char *pDevice = "/dev/input/mice";
 
     int left, middle, right;
+    int prev = -1;
     signed char dx, dy;
 
     point crosshair_temp[((crosshair_radius-crosshair_middle)+1)*4];
@@ -161,6 +167,9 @@ void *paint(void *arg) {
         printf("ERROR Opening %s\n", pDevice);
         // return;
     }
+
+    point p1 = create_point(-1, -1, 0, 0, 0);
+    point p2 = create_point(-1, -1, 0, 0, 0);
 
     // Read mouse
     while (1) {
@@ -204,6 +213,57 @@ void *paint(void *arg) {
                 }
                 draw_point(crosshair, f);
             }
+
+            if(right > 0){
+                if(prev < 0){
+                    p1.x = crosshair.x;
+                    p1.y = crosshair.y;
+                    prev = 1;
+                }
+            }
+            else{
+                if(prev > 0){
+                    p2.x = crosshair.x;
+                    p2.y = crosshair.y;
+
+                    prev = -1;
+
+                    if(status == RED_STATUS) {
+                        p1.c1 = 0;
+                        p1.c2 = 0;
+                        p1.c3 = 255;
+                        p2.c1 = 0;
+                        p2.c2 = 0;
+                        p2.c3 = 255;
+                    } else if(status == NORMAL_STATUS) {
+                        p1.c1 = 0;
+                        p1.c2 = 0;
+                        p1.c3 = 0;
+                        p2.c1 = 0;
+                        p2.c2 = 0;
+                        p2.c3 = 0;
+                    } else if(status == GREEN_STATUS) {
+                        p1.c1 = 0;
+                        p1.c2 = 255;
+                        p1.c3 = 0;
+                        p2.c1 = 0;
+                        p2.c2 = 255;
+                        p2.c3 = 0;
+                    } else if(status == BLUE_STATUS) {
+                        p1.c1 = 255;
+                        p1.c2 = 0;
+                        p1.c3 = 0;
+                        p2.c1 = 255;
+                        p2.c2 = 0;
+                        p2.c3 = 0;
+                    }
+
+                    line l = create_line(p1, p2);
+                    draw_line(l, f);
+                }
+            }
+
+            drawToScreen(&f);
         }
     }
 }
